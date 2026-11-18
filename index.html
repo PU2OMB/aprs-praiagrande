@@ -5,60 +5,431 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#082b40">
   <meta name="description" content="Monitoramento APRS de estações de rádio em Praia Grande e região.">
-  <title>APRS Praia Grande</title>
+  <title>APRS Praia Grande | PY2OMB</title>
+
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="">
+
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      color-scheme: dark;
+      --fundo: #082b40;
+      --painel: #0d3b50;
+      --painel-claro: #10536a;
+      --borda: #347185;
+      --destaque: #53e0df;
+      --texto: #f4fbfc;
+      --suave: #c5dfe5;
+      --aviso: #ffd27a;
+    }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      color: #f4fbfc;
-      background: #082b40;
+      color: var(--texto);
+      background: var(--fundo);
     }
+
     header {
       padding: 24px 16px;
       text-align: center;
-      background: #10536a;
-      border-bottom: 3px solid #53e0df;
+      background: var(--painel-claro);
+      border-bottom: 3px solid var(--destaque);
     }
-    h1 { margin: 0 0 8px; font-size: 25px; }
-    header p { margin: 0; color: #d5edf0; }
-    main { max-width: 760px; margin: 0 auto; padding: 20px 16px; }
-    .panel {
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 25px;
+    }
+
+    header p {
+      margin: 5px 0 0;
+      color: #d5edf0;
+    }
+
+    .indicativo {
+      font-weight: bold;
+      letter-spacing: .4px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    .painel {
       padding: 18px;
       margin: 14px 0;
-      background: #0d3b50;
-      border: 1px solid #347185;
+      background: var(--painel);
+      border: 1px solid var(--borda);
       border-radius: 14px;
     }
-    h2 { margin-top: 0; color: #53e0df; font-size: 18px; }
-    .status { color: #e9c98b; font-weight: bold; }
-    footer { padding: 20px; text-align: center; color: #a9c4cc; font-size: 13px; }
+
+    h2 {
+      margin: 0 0 12px;
+      color: var(--destaque);
+      font-size: 18px;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+
+    .status-linha {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 7px 11px;
+      border-radius: 999px;
+      color: #241b06;
+      background: var(--aviso);
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .observacao {
+      color: var(--suave);
+      font-size: 14px;
+    }
+
+    #mapa {
+      width: 100%;
+      height: 62vh;
+      min-height: 380px;
+      border: 2px solid var(--destaque);
+      border-radius: 12px;
+      background: #e8edf0;
+      z-index: 1;
+    }
+
+    .cidades {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 13px;
+    }
+
+    .cidades button {
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--texto);
+      background: #124b60;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .cidades button:hover,
+    .cidades button:focus {
+      outline: 2px solid var(--destaque);
+      outline-offset: 2px;
+    }
+
+    .grade {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .indicador {
+      padding: 13px;
+      border-radius: 10px;
+      background: #092f43;
+      border: 1px solid var(--borda);
+    }
+
+    .indicador strong {
+      display: block;
+      color: var(--destaque);
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .indicador span {
+      color: var(--suave);
+      font-size: 13px;
+    }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 21px;
+      line-height: 1.8;
+    }
+
+    footer {
+      padding: 20px;
+      text-align: center;
+      color: #a9c4cc;
+      font-size: 13px;
+    }
+
+    @media (max-width: 650px) {
+      header {
+        padding: 20px 12px;
+      }
+
+      h1 {
+        font-size: 21px;
+      }
+
+      main {
+        padding: 12px 10px;
+      }
+
+      .painel {
+        padding: 14px;
+      }
+
+      #mapa {
+        height: 58vh;
+        min-height: 340px;
+      }
+
+      .grade {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
+
 <body>
+
   <header>
-    <h1>APRS PRAIA GRANDE</h1>
+    <h1>📡 APRS PRAIA GRANDE</h1>
     <p>Monitoramento de estações de rádio • Litoral Paulista</p>
+    <p class="indicativo">Responsável: PY2OMB</p>
   </header>
 
   <main>
-    <section class="panel">
+
+    <section class="painel">
       <h2>Status do sistema</h2>
-      <p class="status">Protótipo inicial — conexão APRS-IS ainda não configurada.</p>
-      <p>Esta página é a base do aplicativo APRS Praia Grande.</p>
+
+      <div class="status-linha">
+        <span class="status">
+          Protótipo — APRS-IS não conectado
+        </span>
+
+        <span class="observacao">
+          O mapa abaixo mostra referências geográficas das cidades.
+        </span>
+      </div>
+
+      <p class="observacao">
+        Ainda não há recepção de posições APRS reais.
+        Os marcadores do mapa não representam estações de rádio.
+      </p>
     </section>
 
-    <section class="panel">
+    <section class="painel">
       <h2>Área de monitoramento</h2>
-      <p>Praia Grande, Baixada Santista e regiões próximas.</p>
+
+      <p>
+        Praia Grande, Baixada Santista e regiões próximas.
+        Selecione um marcador ou uma cidade para centralizar o mapa.
+      </p>
+
+      <div id="mapa"
+           role="application"
+           aria-label="Mapa da região da Baixada Santista">
+      </div>
+
+      <div class="cidades" aria-label="Centralizar mapa por cidade">
+
+        <button type="button" data-cidade="Praia Grande">
+          Praia Grande
+        </button>
+
+        <button type="button" data-cidade="Santos">
+          Santos
+        </button>
+
+        <button type="button" data-cidade="São Vicente">
+          São Vicente
+        </button>
+
+        <button type="button" data-cidade="Guarujá">
+          Guarujá
+        </button>
+
+        <button type="button" data-cidade="Mongaguá">
+          Mongaguá
+        </button>
+
+      </div>
     </section>
 
-    <section class="panel">
-      <h2>Próximas funções</h2>
-      <p>Mapa de estações, indicativos, posições recebidas, iGates, digipeaters e atividade APRS.</p>
+    <section class="painel">
+      <h2>Estações APRS</h2>
+
+      <div class="grade">
+
+        <div class="indicador">
+          <strong>—</strong>
+          <span>Estações recebidas</span>
+        </div>
+
+        <div class="indicador">
+          <strong>—</strong>
+          <span>iGates identificados</span>
+        </div>
+
+        <div class="indicador">
+          <strong>—</strong>
+          <span>Digipeaters identificados</span>
+        </div>
+
+      </div>
+
+      <p class="observacao">
+        Os números serão preenchidos quando a conexão
+        com a rede APRS-IS for configurada.
+      </p>
     </section>
+
+    <section class="painel">
+      <h2>Próximas funções</h2>
+
+      <ul>
+        <li>Receber estações APRS em tempo real via APRS-IS</li>
+        <li>Exibir indicativos e posições GPS no mapa</li>
+        <li>Identificar iGates e digipeaters</li>
+        <li>Mostrar o horário da última posição recebida</li>
+        <li>Atualizar automaticamente a atividade APRS</li>
+      </ul>
+    </section>
+
   </main>
 
-  <footer>APRS Praia Grande • Projeto experimental</footer>
+  <footer>
+    APRS Praia Grande • Projeto experimental PY2OMB
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="">
+  </script>
+
+  <script>
+
+    // Mapa demonstrativo.
+    // A conexão APRS-IS ainda não foi implementada.
+
+    const cidades = [
+
+      {
+        nome: 'Praia Grande',
+        lat: -24.005,
+        lon: -46.402
+      },
+
+      {
+        nome: 'Santos',
+        lat: -23.960,
+        lon: -46.333
+      },
+
+      {
+        nome: 'São Vicente',
+        lat: -23.963,
+        lon: -46.392
+      },
+
+      {
+        nome: 'Guarujá',
+        lat: -23.993,
+        lon: -46.256
+      },
+
+      {
+        nome: 'Mongaguá',
+        lat: -24.093,
+        lon: -46.620
+      }
+
+    ];
+
+    const mapa = L.map('mapa').setView(
+      [-24.005, -46.42],
+      11
+    );
+
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }
+    ).addTo(mapa);
+
+    const marcadores = {};
+
+    cidades.forEach((cidade) => {
+
+      const marcador = L.marker([
+        cidade.lat,
+        cidade.lon
+      ]).addTo(mapa);
+
+      marcador.bindPopup(
+        '<strong>' + cidade.nome +
+        '</strong><br>Referência geográfica — não é uma estação APRS.'
+      );
+
+      marcadores[cidade.nome] = marcador;
+
+    });
+
+    // Botões para centralizar o mapa por cidade.
+
+    document.querySelectorAll('[data-cidade]').forEach((botao) => {
+
+      botao.addEventListener('click', () => {
+
+        const nome = botao.dataset.cidade;
+
+        const cidade = cidades.find(
+          (item) => item.nome === nome
+        );
+
+        if (!cidade) return;
+
+        mapa.setView(
+          [cidade.lat, cidade.lon],
+          13
+        );
+
+        marcadores[nome].openPopup();
+
+      });
+
+    });
+
+    // Ajusta o tamanho do mapa após carregar a página.
+
+    window.addEventListener('load', () => {
+
+      setTimeout(() => {
+        mapa.invalidateSize();
+      }, 100);
+
+    });
+
+  </script>
+
 </body>
 </html>
